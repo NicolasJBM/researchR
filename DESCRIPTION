@@ -1,5 +1,5 @@
 Package: searchR
-Title: Conduct thorough investigations
+Title: Conduct scientific investigations
 Version: 0.1.0
 Date: 2022-01-31
 Authors@R: 
@@ -8,7 +8,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "nicolas.jb.mangin@gmail.com",
            comment = c(ORCID = "0000-0002-1597-9376"))
-Description: Application supporting scientific investigations and communications
+Description: Application supporting the production of scientific investigations and communication of their findings.
 Encoding: UTF-8
 URL: https://github.com/NicolasJBM/teachR
 LazyData: true
@@ -46,5 +46,7 @@ Imports:
   revealjs,
   DT,
   fs,
-  kableExtra
+  kableExtra,
+  targets,
+  tarchetypes
 
