@@ -3,7 +3,7 @@
 #' @author Nicolas Mangin
 #' @description Module facilitating the quick creation or modification of functions used in documents.
 #' @param id Character. ID of the module to connect the user interface to the appropriate server side.
-#' @return Save the new or modified function in the folder "1_preparation/functions".
+#' @return Save the new or modified function in the folder "2_functions".
 #' @import shiny
 #' @importFrom rstudioapi navigateToFile
 #' @importFrom shinyAce aceEditor
@@ -19,7 +19,7 @@ functions_edit_server <- function(id){
     
     shiny::observe({
       modrval$function_list <- c(
-        "", base::list.files("1_preparation/functions")
+        "", base::list.files("2_functions")
       )
     })
     
@@ -71,18 +71,18 @@ functions_edit_server <- function(id){
         if (input$slctfunctionbasis == "") lines <- "" else {
           lines = base::readLines(
             base::paste0(
-              "1_preparation/functions/", input$slctfunctionbasis
+              "2_functions/", input$slctfunctionbasis
             )
           )
         }
         base::writeLines(
           lines,
           base::paste0(
-            "1_preparation/functions/", newname
+            "2_functions/", newname
           ), useBytes = TRUE
         )
         modrval$function_list <- c(
-          "", base::list.files("1_preparation/functions")
+          "", base::list.files("2_functions")
         )
         shiny::updateSelectInput(
           session,
@@ -105,7 +105,7 @@ functions_edit_server <- function(id){
       shiny::req(input$selectedfunction != "")
       rstudioapi::navigateToFile(
         base::paste0(
-          "1_preparation/functions/", input$selectedfunction
+          "2_functions/", input$selectedfunction
         )
       )
     })
@@ -114,7 +114,7 @@ functions_edit_server <- function(id){
       shiny::req(input$selectedfunction != "")
       code <- base::readLines(
         base::paste0(
-          "1_preparation/functions/", input$selectedfunction
+          "2_functions/", input$selectedfunction
         )
       )
       shinyAce::aceEditor(
@@ -129,7 +129,7 @@ functions_edit_server <- function(id){
       base::writeLines(
         input$editedfunction,
         base::paste0(
-          "1_preparation/functions/", input$selectedfunction
+          "2_functions/", input$selectedfunction
         ),
         useBytes = TRUE
       )
@@ -160,11 +160,11 @@ functions_edit_server <- function(id){
       if (input$confirmdeletefunction){
         base::unlink(
           base::paste0(
-            "1_preparation/functions/", input$selectedfunction
+            "2_functions/", input$selectedfunction
           )
         )
         modrval$function_list <- c(
-          "", base::list.files("1_preparation/functions")
+          "", base::list.files("2_functions")
         )
         shiny::updateSelectInput(
           session,

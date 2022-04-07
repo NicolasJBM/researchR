@@ -48,5 +48,6 @@ Imports:
   fs,
   kableExtra,
   targets,
-  tarchetypes
+  tarchetypes,
+  visNetwork
 

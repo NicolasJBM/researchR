@@ -6,11 +6,9 @@ data_folders_structure <- tibble::tribble(
   "www","www/pdf",
   "targets", "_targets",
   "data", "1_data",
-  "data","1_data/unstructured",
-  "data","1_data/structured",
   "functions","2_functions",
   "documents","3_documents",
-  "classification","4_classification",
+  "classification","4_classifications",
   "communications", "5_communication"
 )
 base::save(data_folders_structure, file = "data/data_folders_structure.RData")
@@ -38,7 +36,6 @@ data_document_types <- tibble::tibble(
 )
 base::save(data_document_types, file = "data/data_document_types.RData")
 
-
 data_tags <- tibble::tibble(
   tag = base::character(0),
   order = base::integer(0),
@@ -48,27 +45,6 @@ data_tags <- tibble::tibble(
   boxcolor = base::character(0)
 )
 base::save(data_tags, file = "data/data_tags.RData")
-
-
-data_documents <- tibble::tibble(
-  file = base::character(0),
-  code = base::character(0),
-  language = base::character(0),
-  other_languages = base::character(0),
-  path = base::character(0),
-  modified = base::character(0),
-  md5 = base::character(0),
-  title = base::character(0),
-  type = base::factor(levels = c(
-    "Note","Page","Slide","Video","Game",
-    "Statements","Alternatives","Computation",
-    "Essay","Problem","Case"
-  )),
-  document = base::character(0)
-) |>
-  dplyr::mutate(modified = lubridate::as_datetime(modified))
-base::save(data_documents, file = "data/data_documents.RData")
-
 
 data_references <- tibble::tibble(
   key = base::as.character("Mangin2022"),
