@@ -14,7 +14,7 @@ literature_edit_ui <- function(id){
     shiny::uiOutput(ns("select_pdf")),
     shiny::fluidRow(
       shiny::column(
-        6,
+        8,
         shiny::actionButton(
           ns("openpdf"), "Open", icon = shiny::icon("file-pdf"),
           style = "background-color:#003366;color:#FFF;
@@ -23,7 +23,7 @@ literature_edit_ui <- function(id){
         shiny::uiOutput(ns("pdfviewer"))
       ),
       shiny::column(
-        6,
+        4,
         shiny::actionButton(
           ns("saveliterature"), "Save", icon = shiny::icon("save"),
           style = "background-color:#006633;color:#FFF;

@@ -56,10 +56,11 @@ processing_edit_server <- function(id){
     })
     
     output$targetsnet <- visNetwork::renderVisNetwork({
+      shiny::req(!base::is.null(input$deflevsep))
       input$updatenetwork
       targets::tar_visnetwork(
         targets_only = FALSE,
-        level_separation = 500
+        level_separation = input$deflevsep
       )
     })
   

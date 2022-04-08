@@ -36,6 +36,10 @@ processing_edit_ui <- function(id){
           style = "width:100%;background-color:#660066;color:white;
           margin-bottom:10px;"
         ),
+        shiny::sliderInput(
+          ns("deflevsep"), "Level of separation",
+          value = 500, min = 100, max = 1000, step = 1, width = "100%"
+        ),
         visNetwork::visNetworkOutput(ns("targetsnet"), height = "800px")
       )
     )
