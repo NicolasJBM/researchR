@@ -16,7 +16,7 @@ base::save(data_folders_structure, file = "data/data_folders_structure.RData")
 
 data_document_types <- tibble::tibble(
   type = c(
-    "Literature","Note","Communication","Slide","Video","Feedback"
+    "Literature","Note","Text","Slide","Video","Feedback"
   ),
   icon = c(
     "book-open","microscope","copy","images","video","comment"
