@@ -16,19 +16,18 @@ base::save(data_folders_structure, file = "data/data_folders_structure.RData")
 
 data_document_types <- tibble::tibble(
   type = c(
-    "Literature","Note","Article","Thesis","Presentation","Video","Feedback"
+    "Literature","Note","Communication","Slide","Video","Feedback"
   ),
   icon = c(
-    "book-open","microscope","copy","book","images","video","comment"
+    "book-open","microscope","copy","images","video","comment"
   ),
   boxcolor = c(
-    "navy","primary","info","teal","success","orange","danger"
+    "black","navy","primary","info","teal","success"
   ),
   description = c(
     "Reading notes on and tagging of the literature.",
     "Research notes and ad hoc analyses destined to be published on a blog.",
-    "Sections and subsections of a scientific article.",
-    "Sections and subsections of a thesis.",
+    "Sections and subsections of a scientific article or thesis.",
     "Slide shows to communicate findings in meetings and conferences.",
     "Script of videos presenting findings.",
     "Feedback gathered on what is communicated."
