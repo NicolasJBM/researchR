@@ -16,7 +16,18 @@ License: GPL-3 | file LICENSE
 Depends: R (>= 4.1)
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
-VignetteBuilder: knitr
 Imports:
-  knitr
+  scholR,
+  readr,
+  readxl,
+  shiny,
+  shinyalert,
+  shinybusy,
+  shinydashboard,
+  shinydashboardPlus,
+  stringr,
+  purrr,
+  dplyr,
+  tibble,
+  tidyr
 
