@@ -24,10 +24,12 @@ Imports:
   shinyalert,
   shinybusy,
   shinydashboard,
-  shinydashboardPlus,
+  shinyWidgets,
   stringr,
   purrr,
   dplyr,
   tibble,
-  tidyr
+  tidyr,
+  editR,
+  rhandsontable
 
