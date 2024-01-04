@@ -7,13 +7,18 @@
 #' @param references Reactive. List of references.
 #' @param study_paths Reactive. Paths to project databases and sub-folders.
 #' @return A list of course data.
+#' @importFrom dplyr arrange
+#' @importFrom dplyr bind_rows
 #' @importFrom dplyr filter
+#' @importFrom dplyr left_join
 #' @importFrom dplyr mutate
 #' @importFrom dplyr select
 #' @importFrom editR make_new_name
 #' @importFrom editR selection_server
+#' @importFrom rhandsontable hot_col
 #' @importFrom rhandsontable hot_cols
 #' @importFrom rhandsontable hot_context_menu
+#' @importFrom rhandsontable hot_to_r
 #' @importFrom rhandsontable rHandsontableOutput
 #' @importFrom rhandsontable renderRHandsontable
 #' @importFrom rhandsontable rhandsontable
@@ -37,6 +42,7 @@
 #' @importFrom shiny sliderInput
 #' @importFrom shiny tagList
 #' @importFrom shiny textInput
+#' @importFrom shinyAce aceEditor
 #' @importFrom shinyWidgets airDatepickerInput
 #' @importFrom shinyWidgets checkboxGroupButtons
 #' @importFrom shinyalert shinyalert
@@ -44,6 +50,7 @@
 #' @importFrom stringr str_extract
 #' @importFrom stringr str_remove_all
 #' @importFrom stringr str_split
+#' @importFrom tibble tibble
 #' @export
 
 
@@ -57,18 +64,49 @@ annotate_source_server <- function(id, documents, references, study_paths){
     nature <- NULL
     segment <- NULL
     segments <- NULL
+    concept_id <- NULL
+    concept_id1 <- NULL
+    concept_id2 <- NULL
+    concept_label <- NULL
+    concept_label1 <- NULL
+    concept_label2 <- NULL
+    definition <- NULL
+    definition_id <- NULL
+    direction <- NULL
+    explanation <- NULL
+    indicators <- NULL
+    moderations <- NULL
+    observations <- NULL
+    operationalizations <- NULL
+    position <- NULL
+    relation_id <- NULL
     
     modrval <- shiny::reactiveValues()
     shiny::observe({
-      
-      
-      
+      shiny::req(base::length(study_paths()) == 2)
       base::load(study_paths()$databases$segments)
       modrval$segments <- segments
       
+      base::load(study_paths()$databases$concepts)
+      modrval$concepts <- concepts
       
+      base::load(study_paths()$databases$definitions)
+      modrval$definitions <- definitions
       
+      base::load(study_paths()$databases$relations)
+      modrval$relations <- relations
       
+      base::load(study_paths()$databases$moderations)
+      modrval$moderations <- moderations
+      
+      base::load(study_paths()$databases$indicators)
+      modrval$indicators <- indicators
+      
+      base::load(study_paths()$databases$operationalizations)
+      modrval$operationalizations <- operationalizations
+      
+      base::load(study_paths()$databases$observations)
+      modrval$observations <- observations
       
     })
     
@@ -78,10 +116,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
     preselection <- shiny::reactive({
       shiny::req(base::length(documents()) > 2)
       preselection_table <- documents() |>
-        dplyr::filter(
-          !base::is.na(source),
-          type == input$slctdoctype
-        )
+        dplyr::filter(type == input$slctdoctype)
       intitle <- base::as.character(base::tolower(stringr::str_split(input$regexintitle, pattern = " ", simplify = TRUE)))
       if (intitle[1] != ""){
         for (p in intitle) preselection_table <- dplyr::filter(preselection_table, stringr::str_detect(base::tolower(title), p))
@@ -259,11 +294,13 @@ annotate_source_server <- function(id, documents, references, study_paths){
             `<i class='fa fa-list-ol'> Section </i>` = "Section",
             `<i class='fa fa-bars'> Content </i>` = "Content"
           )
+          slct <- c("Section","Content")
         } else {
           relevantchoices <- c(
             `<i class='fa fa-question-circle'> Q </i>` = "Question",
             `<i class='fa fa-comment-dots'> A </i>` = "Answer"
           )
+          slct <- c("Question","Answer")
         }
         base::list(
           shiny::fluidRow(
@@ -272,7 +309,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
               shinyWidgets::checkboxGroupButtons(
                 inputId = ns("slctnature"),
                 label = "Nature:", 
-                choices = relevantchoices,
+                choices = relevantchoices, selected = slct,
                 justified = TRUE
               )
             ),
@@ -304,6 +341,8 @@ annotate_source_server <- function(id, documents, references, study_paths){
     
     
     
+    
+    
     # Save...
     shiny::observeEvent(input$savesegments, {
       
@@ -312,12 +351,225 @@ annotate_source_server <- function(id, documents, references, study_paths){
     
     
     
+    
+    
+    
+    
+    
+    
     ############################################################################
-    # Edition of notes and conceptual bases
+    # Edition of notes
+    
+    output$editnotes <- shiny::renderUI({
+      shiny::req(!base::is.null(sourcedoc()))
+      shiny::req(!base::is.na(sourcedoc()))
+      shiny::req(sourcedoc() != "")
+      path <- base::paste0(study_paths()$subfolders$original, "/", sourcedoc())
+      shiny::req(base::file.exists(path))
+      notes <- base::readLines(path)
+      shinyAce::aceEditor(
+        outputId = ns("editednotes"), value = notes,
+        mode = "markdown", wordWrap = TRUE, debounce = 10,
+        autoComplete = "live", height = "700"
+      )
+    })
+    
+    shiny::observeEvent(input$savenotes, {
+      
+    })
     
     
     
+    ############################################################################
+    # Edition of concepts
     
+    output$editconcepts <- rhandsontable::renderRHandsontable({
+      if (input$regexconcepts != ""){
+        selected <- modrval$concepts |>
+          dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexconcepts)))
+      } else selected <- modrval$concepts
+      newid <- base::length(modrval$concepts$concept_id)+1
+      newid <- base::paste0(
+        "CPT",
+        base::paste0(base::rep(0, 7-base::nchar(newid)), collapse  = ""),
+        newid, collapse  = ""
+      )
+      add <- tibble::tibble(
+        concept_id = newid,
+        concept_symbol = base::as.character(NA),
+        concept_label = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(concept_label) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(1, readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("15%","15%","70%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = FALSE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$saveconcepts, {
+      table <- input$editconcepts |>
+        rhandsontable::hot_to_r() |>
+        stats::na.omit() |>
+        dplyr::filter(concept_label != "")
+      excluded <-  dplyr::filter(modrval$concepts, !(concept_id %in% table$concept_id))
+      edited <- dplyr::filter(table, concept_id %in% modrval$concepts$concept_id)
+      added <- dplyr::filter(table, !(concept_id %in% modrval$concepts$concept_id))
+      concepts <- dplyr::bind_rows(base::list(excluded, edited, added)) |>
+        dplyr::arrange(concept_label)
+      modrval$concepts <- concepts
+      base::save(concepts, file = study_paths()$databases$concepts)
+      shinyalert::shinyalert(title = "Concepts saved", type = "success")
+    })
+    
+    
+    
+    ############################################################################
+    # Edition of definitions
+    
+    output$editdefinitions <- rhandsontable::renderRHandsontable({
+      shiny::req(!base::is.null(sourcedoc()))
+      definitions <- modrval$definitions |>
+        dplyr::filter(file == sourcedoc()) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id, concept_label), by = "concept_id") |>
+        dplyr::select(definition_id, file, concept_label, definition, segment, position)
+      if (input$regexdefinitions != ""){
+        selected <- definitions |>
+          dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexdefinitions)))
+      } else selected <- definitions
+      newid <- base::length(modrval$definitions$definition_id)+1
+      newid <- base::paste0(
+        "DEF",
+        base::paste0(base::rep(0, 7-base::nchar(newid)), collapse  = ""),
+        newid, collapse  = ""
+      )
+      add <- tibble::tibble(
+        definition_id = newid,
+        file = sourcedoc(),
+        concept_label = base::as.character(NA),
+        definition = base::as.character(NA),
+        segment = base::as.integer(NA),
+        position = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(concept_label) |>
+        dplyr::mutate(concept_label = base::factor(concept_label, levels = modrval$concepts$concept_label)) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("10%","10%","10%","20%","40%","10%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = FALSE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$savedefinitions, {
+      shiny::req(!base::is.null(input$editdefinitions))
+      table <- input$editdefinitions |>
+        rhandsontable::hot_to_r() |>
+        stats::na.omit() |>
+        dplyr::filter(concept_label != "", definition != "")
+      excluded <-  dplyr::filter(modrval$definitions, !(definition_id %in% table$definition_id))
+      edited <- dplyr::filter(table, definition_id %in% modrval$definitions$definition_id)
+      added <- dplyr::filter(table, !(definition_id %in% modrval$definitions$definition_id))
+      definitions <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::mutate(concept_label = base::as.character(concept_label)) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_label, concept_id), by = "concept_label") |>
+        dplyr::select(definition_id, file, concept_id, definition, segment, position) |>
+        dplyr::bind_rows(excluded) |>
+        dplyr::arrange(concept_label)
+      modrval$definitions <- definitions
+      base::save(definitions, file = study_paths()$databases$definitions)
+      shinyalert::shinyalert(title = "Definitions saved", type = "success")
+    })
+    
+    
+    
+    ############################################################################
+    # Edition of relations
+    
+    output$editrelations <- rhandsontable::renderRHandsontable({
+      shiny::req(!base::is.null(sourcedoc()))
+      relations <- modrval$relations |>
+        dplyr::filter(file == sourcedoc())  |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id1 = concept_id, concept_label1 = concept_label), by = "concept_id1") |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id2 = concept_id, concept_label2 = concept_label), by = "concept_id2") |>
+        dplyr::select(relation_id, file, concept_label1, concept_label2, type, direction, sign, explanation, segment, position)
+      if (input$regexrelations != ""){
+        selected <- relations |>
+          dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexrelations)))
+      } else selected <- relations
+      newid <- base::length(modrval$relations$relation_id)+1
+      newid <- base::paste0(
+        "REL",
+        base::paste0(base::rep(0, 7-base::nchar(newid)), collapse  = ""),
+        newid, collapse  = ""
+      )
+      add <- tibble::tibble(
+        relation_id = newid,
+        file = sourcedoc(),
+        concept_label1 = base::as.character(NA),
+        concept_label2 = base::as.character(NA),
+        type = base::as.character(NA),
+        direction = base::as.character(NA),
+        sign = base::as.character(NA),
+        explanation = base::as.character(NA), 
+        segment = base::as.integer(NA),
+        position = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(concept_label1, concept_label2) |>
+        dplyr::mutate(
+          concept_label1 = base::factor(concept_label1, levels = modrval$concepts$concept_label),
+          concept_label2 = base::factor(concept_label2, levels = modrval$concepts$concept_label),
+          type = base::factor(type, levels = c("D","C","O")),
+          direction = base::factor(type, levels = c("F","B","N","R")),
+          sign = base::factor(type, levels = c("+","-","?","+/-"))
+        ) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("5%","5%","15%","15%","5%","5%","5%","35%","5%","5%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = FALSE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$saverelations, {
+      shiny::req(!base::is.null(input$editrelations))
+      table <- input$editrelations |>
+        rhandsontable::hot_to_r() |>
+        stats::na.omit() |>
+        dplyr::filter(concept_label1 != "", concept_label2 != "")
+      excluded <-  dplyr::filter(modrval$relations, !(relation_id %in% table$relation_id))
+      edited <- dplyr::filter(table, relation_id %in% modrval$relations$relation_id)
+      added <- dplyr::filter(table, !(relation_id %in% modrval$relations$relation_id))
+      relations <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::mutate(
+          concept_label1 = base::as.character(concept_label1),
+          concept_label2 = base::as.character(concept_label2),
+          type = base::as.character(type),
+          direction = base::as.character(direction),
+          sign = base::as.character(sign)
+        ) |>
+        dplyr::arrange(concept_label1, concept_label2) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_label1 = concept_label, concept_id1 = concept_id), by = "concept_label1") |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_label2 = concept_label, concept_id2 = concept_id), by = "concept_label2") |>
+        dplyr::select(relation_id, file, concept_id1, concept_id2, type, direction, sign, explanation, segment, position) |>
+        dplyr::bind_rows(excluded)
+      modrval$relations <- relations
+      base::save(relations, file = study_paths()$databases$relations)
+      shinyalert::shinyalert(title = "relations saved", type = "success")
+    })
     
     
     

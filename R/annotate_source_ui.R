@@ -5,6 +5,7 @@
 #' @param id Character. ID of the module to connect the user interface to the appropriate server side.
 #' @return A list of course data.
 #' @importFrom editR selection_ui
+#' @importFrom rhandsontable rHandsontableOutput
 #' @importFrom shiny NS
 #' @importFrom shiny actionButton
 #' @importFrom shiny column
@@ -35,13 +36,21 @@ annotate_source_ui <- function(id){
           ),
           justified = TRUE
         ),
-        shiny::actionButton(
-          ns("newsource"), "New", icon = shiny::icon("wand-magic-sparkles"),
-          style = "background-color:#003366;color:#FFF;width:100%;margin-bottom:5px;"
-        ),
-        shiny::actionButton(
-          ns("opensource"), "Open", icon = shiny::icon("book-open-reader"),
-          style = "background-color:#660033;color:#FFF;width:100%;margin-bottom:5px;"
+        shiny::fluidRow(
+          shiny::column(
+            6,
+            shiny::actionButton(
+              ns("newsource"), "New", icon = shiny::icon("wand-magic-sparkles"),
+              style = "background-color:#003366;color:#FFF;width:100%;margin-top:25px;"
+            )
+          ),
+          shiny::column(
+            6,
+            shiny::actionButton(
+              ns("opensource"), "Open", icon = shiny::icon("book-open-reader"),
+              style = "background-color:#660033;color:#FFF;width:100%;margin-top:25px;"
+            )
+          )
         )
       ),
       shiny::column(
@@ -73,52 +82,224 @@ annotate_source_ui <- function(id){
         7,
         shinydashboard::tabBox(
           side = "left", width = "100%",
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("clipboard-list"), "Notes",
               title = ""
-            )
+            ),
+            shiny::actionButton(
+              ns("savenotes"), "Save", icon = shiny::icon("floppy-disk"),
+              style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+            ),
+            shiny::uiOutput(ns("editnotes"))
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("lightbulb"), "Concepts",
               title = ""
-            )
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("saveconcepts"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexconcepts"),
+                  label = "Search for concepts:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editconcepts"))
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
-              shiny::icon("user-graduate"), "definitions",
+              shiny::icon("user-graduate"), "Definitions",
               title = ""
-            )
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("savedefinitions"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexdefinitions"),
+                  label = "Search for concepts:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editdefinitions"))
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("diagram-project"), "Relations",
               title = ""
-            )
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("saverelations"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexrelations"),
+                  label = "Search for concepts:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editrelations"))
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("diagram-project"), "Moderations",
               title = ""
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("savemoderations"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexmoderations"),
+                  label = "Search for concepts:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
             )
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("ruler"), "Indicators",
               title = ""
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("saveindicators"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexindicators"),
+                  label = "Search for indicators:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
             )
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("ruler"), "Operationalizations",
               title = ""
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("saveoperationalizations"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexoperationalization"),
+                  label = "Search for indicators:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
             )
           ),
+          
+          
+          
           shiny::tabPanel(
             title = shiny::span(
               shiny::icon("magnifying-glass-chart"), "Observations",
               title = ""
+            ),
+            shiny::fluidRow(
+              shiny::column(
+                3,
+                shiny::actionButton(
+                  ns("saveobservations"), "Save", icon = shiny::icon("floppy-disk"),
+                  style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
+                )
+              ),
+              shiny::column(
+                9,
+                shinyWidgets::searchInput(
+                  inputId = ns("regexobservation"),
+                  label = "Search for indicators:", 
+                  placeholder = "Regular expressions",
+                  btnSearch = icon("magnifying-glass"), 
+                  btnReset = icon("xmark"),
+                  width = "100%"
+                )
+              )
             )
           )
         )
