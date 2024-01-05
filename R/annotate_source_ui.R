@@ -161,7 +161,7 @@ annotate_source_ui <- function(id){
           
           shiny::tabPanel(
             title = shiny::span(
-              shiny::icon("diagram-project"), "Relations",
+              shiny::icon("circle-nodes"), "Relations",
               title = ""
             ),
             shiny::fluidRow(
@@ -221,7 +221,7 @@ annotate_source_ui <- function(id){
           
           shiny::tabPanel(
             title = shiny::span(
-              shiny::icon("ruler"), "Indicators",
+              shiny::icon("arrow-up-right-from-square"), "Indicators",
               title = ""
             ),
             shiny::fluidRow(
@@ -243,14 +243,15 @@ annotate_source_ui <- function(id){
                   width = "100%"
                 )
               )
-            )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editindicators"))
           ),
           
           
           
           shiny::tabPanel(
             title = shiny::span(
-              shiny::icon("arrow-up-right-from-square"), "Operationalizations",
+              shiny::icon("ruler"), "Operationalizations",
               title = ""
             ),
             shiny::fluidRow(
@@ -264,7 +265,7 @@ annotate_source_ui <- function(id){
               shiny::column(
                 9,
                 shinyWidgets::searchInput(
-                  inputId = ns("regexoperationalization"),
+                  inputId = ns("regexoperationalizations"),
                   label = "Search for indicators:", 
                   placeholder = "Regular expressions",
                   btnSearch = icon("magnifying-glass"), 
@@ -272,7 +273,8 @@ annotate_source_ui <- function(id){
                   width = "100%"
                 )
               )
-            )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editoperationalizations"))
           ),
           
           
@@ -293,7 +295,7 @@ annotate_source_ui <- function(id){
               shiny::column(
                 9,
                 shinyWidgets::searchInput(
-                  inputId = ns("regexobservation"),
+                  inputId = ns("regexobservations"),
                   label = "Search for indicators:", 
                   placeholder = "Regular expressions",
                   btnSearch = icon("magnifying-glass"), 
@@ -301,8 +303,22 @@ annotate_source_ui <- function(id){
                   width = "100%"
                 )
               )
-            )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editobservations"))
+          ),
+          
+          
+          
+          shiny::tabPanel(
+            title = shiny::span(
+              shiny::icon("diagram-project"), "Map",
+              title = ""
+            ),
+            shiny::plotOutput(ns("mapnet"))
           )
+          
+          
+          
         )
       ),
       shiny::column(

@@ -32,5 +32,6 @@ Imports:
   tidyr,
   editR,
   rhandsontable,
-  shinyAce
+  shinyAce,
+  tidygraph
 

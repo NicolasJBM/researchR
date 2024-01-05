@@ -9,10 +9,14 @@
 #' @return A list of course data.
 #' @importFrom dplyr arrange
 #' @importFrom dplyr bind_rows
+#' @importFrom dplyr case_when
 #' @importFrom dplyr filter
+#' @importFrom dplyr group_by
 #' @importFrom dplyr left_join
 #' @importFrom dplyr mutate
+#' @importFrom dplyr n
 #' @importFrom dplyr select
+#' @importFrom dplyr summarise
 #' @importFrom editR make_new_name
 #' @importFrom editR selection_server
 #' @importFrom rhandsontable hot_col
@@ -35,6 +39,7 @@
 #' @importFrom shiny reactive
 #' @importFrom shiny reactiveValues
 #' @importFrom shiny removeModal
+#' @importFrom shiny renderPlot
 #' @importFrom shiny renderUI
 #' @importFrom shiny req
 #' @importFrom shiny selectInput
@@ -51,6 +56,10 @@
 #' @importFrom stringr str_remove_all
 #' @importFrom stringr str_split
 #' @importFrom tibble tibble
+#' @importFrom tidygraph activate
+#' @importFrom tidygraph as_tbl_graph
+#' @importFrom tidygraph left_join
+#' @importFrom tidygraph mutate
 #' @export
 
 
@@ -86,6 +95,27 @@ annotate_source_server <- function(id, documents, references, study_paths){
     origin <- NULL
     relation_label <- NULL
     keep <- NULL
+    alpha1 <- NULL
+    alpha2 <- NULL
+    effect_size <- NULL
+    indicator_id <- NULL
+    indicator_id1 <- NULL
+    indicator_id2 <- NULL
+    indicator_label <- NULL
+    indicator_label1 <- NULL
+    indicator_label2 <- NULL
+    observation_id <- NULL
+    operationalization_id <- NULL
+    sample_size <- NULL
+    color <- NULL
+    concept_symbol <- NULL
+    indicator_symbol <- NULL
+    label <- NULL
+    name <- NULL
+    shape <- NULL
+    size <- NULL
+    symbol <- NULL
+    lty <- NULL
     
     modrval <- shiny::reactiveValues()
     shiny::observe({
@@ -320,7 +350,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
               )
             ),
             shiny::column(
-              7,
+              6,
               shiny::sliderInput(
                 ns("slctsegment"), "Segments:",
                 min = 1, max = base::max(selected_segments()$segment),
@@ -328,7 +358,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
               )
             ),
             shiny::column(
-              2,
+              3,
               shiny::actionButton(
                 ns("savesegments"), "Save", icon = shiny::icon("floppy-disk"),
                 style = "background-color:#006633;color:#FFF;width:100%;margin-top:25px;"
@@ -340,26 +370,24 @@ annotate_source_server <- function(id, documents, references, study_paths){
       }
     })
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
     # Save...
     shiny::observeEvent(input$savesegments, {
-      
+      shiny::req(!base::is.null(sourcedoc()))
+      shiny::req(!base::is.null(selected_segments()))
+      shiny::req(!base::is.null(input$editsegments))
+      table <- input$editsegments |>
+        rhandsontable::hot_to_r()
+      source <- selected_segments()
+      excluded1 <- dplyr::filter(modrval$segments, file != sourcedoc())
+      excluded2 <-  dplyr::filter(source, !(segment %in% table$segment))
+      edited <- dplyr::filter(table, segment %in% source$segment) |>
+        dplyr::mutate(file = sourcedoc())
+      segments <- dplyr::bind_rows(base::list(excluded1, excluded2, edited)) |>
+        dplyr::arrange(file, segment)
+      modrval$segments <- segments
+      base::save(segments, file = study_paths()$databases$segments)
+      shinyalert::shinyalert(title = "Segments saved", type = "success")
     })
-    
-    
-    
-    
-    
-    
-    
     
     
     
@@ -380,19 +408,13 @@ annotate_source_server <- function(id, documents, references, study_paths){
       )
     })
     
-    
-    
-    
-    
-    
-    
     shiny::observeEvent(input$savenotes, {
-      
+      shiny::req(!base::is.null(input$editednotes))
+      notes <- input$editednotes
+      path <- base::paste0(study_paths()$subfolders$original, "/", sourcedoc())
+      base::writeLines(notes, path)
+      shinyalert::shinyalert(title = "Notes saved", type = "success")
     })
-    
-    
-    
-    
     
     
     
@@ -580,7 +602,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
         dplyr::bind_rows(excluded)
       modrval$relations <- relations
       base::save(relations, file = study_paths()$databases$relations)
-      shinyalert::shinyalert(title = "relations saved", type = "success")
+      shinyalert::shinyalert(title = "Relations saved", type = "success")
     })
     
     
@@ -669,18 +691,295 @@ annotate_source_server <- function(id, documents, references, study_paths){
         dplyr::bind_rows(excluded)
       modrval$moderations <- moderations
       base::save(moderations, file = study_paths()$databases$moderations)
-      shinyalert::shinyalert(title = "moderations saved", type = "success")
+      shinyalert::shinyalert(title = "Moderations saved", type = "success")
     })
     
     
     
+    ############################################################################
+    # Edition of indicators
+    
+    output$editindicators <- rhandsontable::renderRHandsontable({
+      if (input$regexindicators != ""){
+        selected <- modrval$indicators |>
+          dplyr::filter(stringr::str_detect(base::tolower(indicator_label), base::tolower(input$regexindicators)))
+      } else selected <- modrval$indicators
+      newid <- searchR::make_new_id(modrval$indicators$indicator_id, "IND")
+      add <- tibble::tibble(
+        indicator_id = newid,
+        indicator_symbol = base::as.character(NA),
+        indicator_label = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(indicator_label) |>
+        dplyr::mutate(keep = TRUE) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(1, readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("15%","25%","55%","5%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = TRUE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$saveindicators, {
+      table <- input$editindicators |>
+        rhandsontable::hot_to_r() |>
+        stats::na.omit() |>
+        dplyr::filter(indicator_label != "")
+      excluded <-  dplyr::filter(modrval$indicators, !(indicator_id %in% table$indicator_id))
+      edited <- dplyr::filter(table, indicator_id %in% modrval$indicators$indicator_id)
+      added <- dplyr::filter(table, !(indicator_id %in% modrval$indicators$indicator_id))
+      indicators <- dplyr::bind_rows(base::list(excluded, edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
+        dplyr::arrange(indicator_label)
+      modrval$indicators <- indicators
+      base::save(indicators, file = study_paths()$databases$indicators)
+      shinyalert::shinyalert(title = "Indicators saved", type = "success")
+    })
     
     
     
+    ############################################################################
+    # Edition of operatinalizations
+    
+    output$editoperationalizations <- rhandsontable::renderRHandsontable({
+      shiny::req(!base::is.null(sourcedoc()))
+      operationalizations <- modrval$operationalizations |>
+        dplyr::filter(file == sourcedoc()) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id, concept_label), by = "concept_id") |>
+        dplyr::left_join(dplyr::select(modrval$indicators, indicator_id, indicator_label), by = "indicator_id") |>
+        dplyr::select(operationalization_id, file, concept_label, direction, sign, indicator_label, explanation, segment, position)
+      if (input$regexoperationalizations != ""){
+        selected1 <- operationalizations |>
+          dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexoperationalizations)))
+        selected2 <- operationalizations |>
+          dplyr::filter(stringr::str_detect(base::tolower(indicator_label), base::tolower(input$regexoperationalizations)))
+        selected <- base::unique(dplyr::bind_rows(selected1, selected2))
+      } else selected <- operationalizations
+      newid <- searchR::make_new_id(modrval$operationalizations$operationalization_id, "OPR")
+      add <- tibble::tibble(
+        operationalization_id = newid,
+        file = sourcedoc(),
+        concept_label = base::as.character(NA),
+        direction = base::as.character(NA),
+        sign = base::as.character(NA),
+        indicator_label = base::as.character(NA),
+        explanation = base::as.character(NA), 
+        segment = base::as.integer(NA),
+        position = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(concept_label, indicator_label) |>
+        dplyr::mutate(
+          concept_label = base::factor(concept_label, levels = c("", modrval$concepts$concept_label)),
+          direction = base::factor(direction, levels = c("-->","<--","---","<->")),
+          sign = base::factor(sign, levels = c("+","-","?","+/-")),
+          indicator_label = base::factor(indicator_label, levels = c("", modrval$indicators$indicator_label)),
+          keep = TRUE
+        ) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("5%","5%","15%","5%","5%","15%","35%","5%","5%","5%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = TRUE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$saveoperationalizations, {
+      shiny::req(!base::is.null(input$editoperationalizations))
+      table <- input$editoperationalizations |>
+        rhandsontable::hot_to_r() |>
+        dplyr::filter(!base::is.na(concept_label), !base::is.na(indicator_label)) |>
+        dplyr::filter(concept_label != "", indicator_label != "")
+      excluded <-  dplyr::filter(modrval$operationalizations, !(operationalization_id %in% table$operationalization_id))
+      edited <- dplyr::filter(table, operationalization_id %in% modrval$operationalizations$operationalization_id)
+      added <- dplyr::filter(table, !(operationalization_id %in% modrval$operationalizations$operationalization_id))
+      operationalizations <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
+        dplyr::mutate(
+          concept_label = base::as.character(concept_label),
+          direction = base::as.character(direction),
+          sign = base::as.character(sign),
+          indicator_label = base::as.character(indicator_label)
+        ) |>
+        dplyr::arrange(concept_label, indicator_label) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_label, concept_id), by = "concept_label") |>
+        dplyr::left_join(dplyr::select(modrval$indicators, indicator_label, indicator_id), by = "indicator_label") |>
+        dplyr::select(operationalization_id, file, concept_id, direction, sign, indicator_id, explanation, segment, position) |>
+        dplyr::bind_rows(excluded)
+      modrval$operationalizations <- operationalizations
+      base::save(operationalizations, file = study_paths()$databases$operationalizations)
+      shinyalert::shinyalert(title = "Operationalizations saved", type = "success")
+    })
     
     
     
+    ############################################################################
+    # Edition of observations
     
+    output$editobservations <- rhandsontable::renderRHandsontable({
+      shiny::req(!base::is.null(sourcedoc()))
+      observations <- modrval$observations |>
+        dplyr::filter(file == sourcedoc()) |>
+        dplyr::left_join(dplyr::select(modrval$indicators, indicator_id1 = indicator_id, indicator_label1 = indicator_label), by = "indicator_id1") |>
+        dplyr::left_join(dplyr::select(modrval$indicators, indicator_id2 = indicator_id, indicator_label2 = indicator_label), by = "indicator_id2") |>
+        dplyr::select(observation_id, file, indicator_label1, indicator_label2, sample_size, alpha1, alpha2, effect_size, position)
+      if (input$regexobservations != ""){
+        selected1 <- observations |>
+          dplyr::filter(stringr::str_detect(base::tolower(indicator_label1), base::tolower(input$regexobservations)))
+        selected2 <- observations |>
+          dplyr::filter(stringr::str_detect(base::tolower(indicator_label2), base::tolower(input$regexobservations)))
+        selected <- base::unique(dplyr::bind_rows(selected1, selected2))
+      } else selected <- observations
+      newid <- searchR::make_new_id(modrval$observations$observation_id, "OBS")
+      add <- tibble::tibble(
+        observation_id = newid,
+        file = sourcedoc(),
+        indicator_label1 = base::as.character(NA),
+        indicator_label2 = base::as.character(NA),
+        sample_size = base::as.double(NA),
+        alpha1 = base::as.double(NA), 
+        alpha2 = base::as.double(NA),
+        effect_size = base::as.double(NA),
+        position = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(indicator_label1, indicator_label2) |>
+        dplyr::mutate(
+          indicator_label1 = base::factor(indicator_label1, levels = c("", modrval$indicators$indicator_label)),
+          indicator_label2 = base::factor(indicator_label2, levels = c("", modrval$indicators$indicator_label)),
+          keep = TRUE
+        ) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("5%","10%","15%","15%","10%","10%","10%","10%","10%","5%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = TRUE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$saveobservations, {
+      shiny::req(!base::is.null(input$editobservations))
+      table <- input$editobservations |>
+        rhandsontable::hot_to_r() |>
+        dplyr::filter(!base::is.na(indicator_label1), !base::is.na(indicator_label2)) |>
+        dplyr::filter(indicator_label1 != "", indicator_label2 != "")
+      excluded <-  dplyr::filter(modrval$observations, !(observation_id %in% table$observation_id))
+      edited <- dplyr::filter(table, observation_id %in% modrval$observations$observation_id)
+      added <- dplyr::filter(table, !(observation_id %in% modrval$observations$observation_id))
+      observations <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
+        dplyr::mutate(
+          indicator_label1 = base::as.character(indicator_label1),
+          indicator_label2 = base::as.character(indicator_label2)
+        ) |>
+        dplyr::arrange(indicator_label1, indicator_label2) |>
+        dplyr::left_join(dplyr::select(modrval$indicators, indicator_label1 = indicator_label, indicator_id1 = concept_id), by = "indicator_label1") |>
+        dplyr::left_join(dplyr::select(modrval$indicators, indicator_label2 = indicator_label, indicator_id2 = concept_id), by = "indicator_label2") |>
+        dplyr::select(observation_id, file, indicator_id1, indicator_id2, sample_size, alpha1, alpha2, effect_size, position) |>
+        dplyr::bind_rows(excluded)
+      modrval$observations <- observations
+      base::save(observations, file = study_paths()$databases$observations)
+      shinyalert::shinyalert(title = "Observations saved", type = "success")
+    })
+    
+    
+    
+    ############################################################################
+    # Network
+    
+    network <- shiny::reactive({
+      concepts <- modrval$concepts
+      relations <- modrval$relations |>
+        dplyr::filter(file == sourcedoc())
+      indicators <- modrval$indicators
+      operationalizations <- modrval$operationalizations |>
+        dplyr::filter(file == sourcedoc())
+      observations <- modrval$observations |>
+        dplyr::filter(file == sourcedoc())
+      nodes <- dplyr::bind_rows(
+        dplyr::mutate(dplyr::select(concepts, name = concept_id, symbol = concept_symbol, label = concept_label), shape = "circle", color = "#99DDFF77"),
+        dplyr::mutate(dplyr::select(indicators, name = indicator_id, symbol = indicator_symbol, label = indicator_label), shape = "square", color = "#FF99DD77"),
+      ) |>
+        dplyr::group_by(name, symbol, label, shape, color) |>
+        dplyr::summarise(size  = dplyr::n(), .groups = "drop")
+      rel <- relations |>
+        dplyr::mutate(
+          origin = dplyr::case_when(
+            direction == "<--" ~ concept_id2,
+            TRUE ~ concept_id1
+          ),
+          destination = dplyr::case_when(
+            direction == "<--" ~ concept_id1,
+            TRUE ~ concept_id2
+          ),
+          shape = "ellipse",
+          lty = dplyr::case_when(
+            type == "Definition" ~ 1,
+            type == "Composition" ~ 1,
+            TRUE ~ 2
+          )
+        ) |>
+        dplyr::select(origin, destination, label = sign, lty)
+      opr <- operationalizations |>
+        dplyr::mutate(
+          origin = dplyr::case_when(
+            direction == "<--" ~ indicator_id,
+            TRUE ~ concept_id
+          ),
+          destination = dplyr::case_when(
+            direction == "<--" ~ concept_id,
+            TRUE ~ indicator_id
+          ),
+          lty = dplyr::case_when(
+            direction == "<--" ~ 1,
+            TRUE ~ 2
+          )
+        ) |>
+        dplyr::select(origin, destination, label = sign, lty)
+      obs <- observations |>
+        dplyr::mutate(
+          origin = indicator_id1,
+          destination = indicator_id2,
+          sign = dplyr::case_when(
+            effect_size < 0 ~ "-",
+            effect_size > 0 ~ "+",
+            TRUE ~ ""
+          ),
+          lty = 2
+        ) |>
+        dplyr::select(origin, destination, label = sign, lty)
+      edges <- dplyr::bind_rows(base::list(rel, opr, obs)) |>
+        dplyr::mutate(
+          color = dplyr::case_when(
+            label == "+" ~ "#009900FF",
+            label == "-" ~ "#990000FF",
+            TRUE ~ "#666666FF"
+          )
+        ) |>
+        dplyr::group_by(origin, destination, label, lty, color) |>
+        dplyr::summarise(width  = dplyr::n(), .groups = "drop")
+      shiny::req(base::nrow(edges) > 0)
+      tidygraph::as_tbl_graph(edges) |>
+        tidygraph::activate("nodes") |>
+        tidygraph::left_join(nodes, by = "name") |>
+        tidygraph::mutate(size = base::as.numeric(size/base::max(size))*30) |>
+        tidygraph::activate("edges")
+    })
+    
+    output$mapnet <- shiny::renderPlot({
+      shiny::req(!base::is.null(network()))
+      base::plot(network())
+    })
     
     
   })
