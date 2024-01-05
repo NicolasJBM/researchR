@@ -80,6 +80,12 @@ annotate_source_server <- function(id, documents, references, study_paths){
     operationalizations <- NULL
     position <- NULL
     relation_id <- NULL
+    destination <- NULL
+    moderation_id <- NULL
+    moderator <- NULL
+    origin <- NULL
+    relation_label <- NULL
+    keep <- NULL
     
     modrval <- shiny::reactiveValues()
     shiny::observe({
@@ -374,9 +380,19 @@ annotate_source_server <- function(id, documents, references, study_paths){
       )
     })
     
+    
+    
+    
+    
+    
+    
     shiny::observeEvent(input$savenotes, {
       
     })
+    
+    
+    
+    
     
     
     
@@ -388,12 +404,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
         selected <- modrval$concepts |>
           dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexconcepts)))
       } else selected <- modrval$concepts
-      newid <- base::length(modrval$concepts$concept_id)+1
-      newid <- base::paste0(
-        "CPT",
-        base::paste0(base::rep(0, 7-base::nchar(newid)), collapse  = ""),
-        newid, collapse  = ""
-      )
+      newid <- searchR::make_new_id(modrval$concepts$concept_id, "CPT")
       add <- tibble::tibble(
         concept_id = newid,
         concept_symbol = base::as.character(NA),
@@ -401,14 +412,15 @@ annotate_source_server <- function(id, documents, references, study_paths){
       )
       dplyr::bind_rows(selected, add) |>
         dplyr::arrange(concept_label) |>
+        dplyr::mutate(keep = TRUE) |>
         rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
         rhandsontable::hot_col(1, readOnly = TRUE) |>
         rhandsontable::hot_cols(
-          colWidths = c("15%","15%","70%"),
+          colWidths = c("15%","25%","55%","5%"),
           manualColumnResize = TRUE
         ) |>
         rhandsontable::hot_context_menu(
-          allowRowEdit = FALSE, allowColEdit = FALSE
+          allowRowEdit = TRUE, allowColEdit = FALSE
         )
     })
     
@@ -421,6 +433,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
       edited <- dplyr::filter(table, concept_id %in% modrval$concepts$concept_id)
       added <- dplyr::filter(table, !(concept_id %in% modrval$concepts$concept_id))
       concepts <- dplyr::bind_rows(base::list(excluded, edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
         dplyr::arrange(concept_label)
       modrval$concepts <- concepts
       base::save(concepts, file = study_paths()$databases$concepts)
@@ -442,12 +455,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
         selected <- definitions |>
           dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexdefinitions)))
       } else selected <- definitions
-      newid <- base::length(modrval$definitions$definition_id)+1
-      newid <- base::paste0(
-        "DEF",
-        base::paste0(base::rep(0, 7-base::nchar(newid)), collapse  = ""),
-        newid, collapse  = ""
-      )
+      newid <- searchR::make_new_id(modrval$definitions$definition_id, "DEF")
       add <- tibble::tibble(
         definition_id = newid,
         file = sourcedoc(),
@@ -458,15 +466,18 @@ annotate_source_server <- function(id, documents, references, study_paths){
       )
       dplyr::bind_rows(selected, add) |>
         dplyr::arrange(concept_label) |>
-        dplyr::mutate(concept_label = base::factor(concept_label, levels = modrval$concepts$concept_label)) |>
+        dplyr::mutate(
+          concept_label = base::factor(concept_label, levels = c("", modrval$concepts$concept_label)),
+          keep = TRUE
+        ) |>
         rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
         rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
         rhandsontable::hot_cols(
-          colWidths = c("10%","10%","10%","20%","40%","10%"),
+          colWidths = c("10%","10%","20%","35%","10%","10%","5%"),
           manualColumnResize = TRUE
         ) |>
         rhandsontable::hot_context_menu(
-          allowRowEdit = FALSE, allowColEdit = FALSE
+          allowRowEdit = TRUE, allowColEdit = FALSE
         )
     })
     
@@ -474,12 +485,13 @@ annotate_source_server <- function(id, documents, references, study_paths){
       shiny::req(!base::is.null(input$editdefinitions))
       table <- input$editdefinitions |>
         rhandsontable::hot_to_r() |>
-        stats::na.omit() |>
+        dplyr::filter(!base::is.na(concept_label)) |>
         dplyr::filter(concept_label != "", definition != "")
       excluded <-  dplyr::filter(modrval$definitions, !(definition_id %in% table$definition_id))
       edited <- dplyr::filter(table, definition_id %in% modrval$definitions$definition_id)
       added <- dplyr::filter(table, !(definition_id %in% modrval$definitions$definition_id))
       definitions <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
         dplyr::mutate(concept_label = base::as.character(concept_label)) |>
         dplyr::left_join(dplyr::select(modrval$concepts, concept_label, concept_id), by = "concept_label") |>
         dplyr::select(definition_id, file, concept_id, definition, segment, position) |>
@@ -498,28 +510,26 @@ annotate_source_server <- function(id, documents, references, study_paths){
     output$editrelations <- rhandsontable::renderRHandsontable({
       shiny::req(!base::is.null(sourcedoc()))
       relations <- modrval$relations |>
-        dplyr::filter(file == sourcedoc())  |>
+        dplyr::filter(file == sourcedoc()) |>
         dplyr::left_join(dplyr::select(modrval$concepts, concept_id1 = concept_id, concept_label1 = concept_label), by = "concept_id1") |>
         dplyr::left_join(dplyr::select(modrval$concepts, concept_id2 = concept_id, concept_label2 = concept_label), by = "concept_id2") |>
-        dplyr::select(relation_id, file, concept_label1, concept_label2, type, direction, sign, explanation, segment, position)
+        dplyr::select(relation_id, file, concept_label1, direction, sign, concept_label2, type, explanation, segment, position)
       if (input$regexrelations != ""){
-        selected <- relations |>
-          dplyr::filter(stringr::str_detect(base::tolower(concept_label), base::tolower(input$regexrelations)))
+        selected1 <- relations |>
+          dplyr::filter(stringr::str_detect(base::tolower(concept_label1), base::tolower(input$regexrelations)))
+        selected2 <- relations |>
+          dplyr::filter(stringr::str_detect(base::tolower(concept_label2), base::tolower(input$regexrelations)))
+        selected <- base::unique(dplyr::bind_rows(selected1, selected2))
       } else selected <- relations
-      newid <- base::length(modrval$relations$relation_id)+1
-      newid <- base::paste0(
-        "REL",
-        base::paste0(base::rep(0, 7-base::nchar(newid)), collapse  = ""),
-        newid, collapse  = ""
-      )
+      newid <- searchR::make_new_id(modrval$relations$relation_id, "REL")
       add <- tibble::tibble(
         relation_id = newid,
         file = sourcedoc(),
         concept_label1 = base::as.character(NA),
-        concept_label2 = base::as.character(NA),
-        type = base::as.character(NA),
         direction = base::as.character(NA),
         sign = base::as.character(NA),
+        concept_label2 = base::as.character(NA),
+        type = base::as.character(NA),
         explanation = base::as.character(NA), 
         segment = base::as.integer(NA),
         position = base::as.character(NA)
@@ -527,20 +537,21 @@ annotate_source_server <- function(id, documents, references, study_paths){
       dplyr::bind_rows(selected, add) |>
         dplyr::arrange(concept_label1, concept_label2) |>
         dplyr::mutate(
-          concept_label1 = base::factor(concept_label1, levels = modrval$concepts$concept_label),
-          concept_label2 = base::factor(concept_label2, levels = modrval$concepts$concept_label),
-          type = base::factor(type, levels = c("D","C","O")),
-          direction = base::factor(type, levels = c("F","B","N","R")),
-          sign = base::factor(type, levels = c("+","-","?","+/-"))
+          concept_label1 = base::factor(concept_label1, levels = c("", modrval$concepts$concept_label)),
+          direction = base::factor(direction, levels = c("-->","<--","---","<->")),
+          sign = base::factor(sign, levels = c("+","-","?","+/-")),
+          concept_label2 = base::factor(concept_label2, levels = c("", modrval$concepts$concept_label)),
+          type = base::factor(type, levels = c("Defitinion","Composition","Causation","Other")),
+          keep = TRUE
         ) |>
         rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
         rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
         rhandsontable::hot_cols(
-          colWidths = c("5%","5%","15%","15%","5%","5%","5%","35%","5%","5%"),
+          colWidths = c("5%","5%","15%","5%","5%","15%","10%","25%","5%","5%","5%"),
           manualColumnResize = TRUE
         ) |>
         rhandsontable::hot_context_menu(
-          allowRowEdit = FALSE, allowColEdit = FALSE
+          allowRowEdit = TRUE, allowColEdit = FALSE
         )
     })
     
@@ -548,28 +559,123 @@ annotate_source_server <- function(id, documents, references, study_paths){
       shiny::req(!base::is.null(input$editrelations))
       table <- input$editrelations |>
         rhandsontable::hot_to_r() |>
-        stats::na.omit() |>
+        dplyr::filter(!base::is.na(concept_label1), !base::is.na(concept_label2)) |>
         dplyr::filter(concept_label1 != "", concept_label2 != "")
       excluded <-  dplyr::filter(modrval$relations, !(relation_id %in% table$relation_id))
       edited <- dplyr::filter(table, relation_id %in% modrval$relations$relation_id)
       added <- dplyr::filter(table, !(relation_id %in% modrval$relations$relation_id))
       relations <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
         dplyr::mutate(
           concept_label1 = base::as.character(concept_label1),
-          concept_label2 = base::as.character(concept_label2),
-          type = base::as.character(type),
           direction = base::as.character(direction),
-          sign = base::as.character(sign)
+          sign = base::as.character(sign),
+          concept_label2 = base::as.character(concept_label2),
+          type = base::as.character(type)
         ) |>
         dplyr::arrange(concept_label1, concept_label2) |>
         dplyr::left_join(dplyr::select(modrval$concepts, concept_label1 = concept_label, concept_id1 = concept_id), by = "concept_label1") |>
         dplyr::left_join(dplyr::select(modrval$concepts, concept_label2 = concept_label, concept_id2 = concept_id), by = "concept_label2") |>
-        dplyr::select(relation_id, file, concept_id1, concept_id2, type, direction, sign, explanation, segment, position) |>
+        dplyr::select(relation_id, file, concept_id1, direction, sign, concept_id2, type, explanation, segment, position) |>
         dplyr::bind_rows(excluded)
       modrval$relations <- relations
       base::save(relations, file = study_paths()$databases$relations)
       shinyalert::shinyalert(title = "relations saved", type = "success")
     })
+    
+    
+    
+    ############################################################################
+    # Edition of moderations
+    
+    short_relations <- shiny::reactive({
+      shiny::req(!base::is.null(sourcedoc()))
+      shiny::req(!base::is.null(modrval$relations))
+      modrval$relations |>
+        dplyr::filter(file == sourcedoc()) |>
+        dplyr::select(relation_id, file, concept_id1, concept_id2, direction) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id1 = concept_id, origin = concept_label), by = "concept_id1") |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id2 = concept_id, destination = concept_label), by = "concept_id2") |>
+        dplyr::mutate(relation_label = base::paste0(origin, " ", direction, " ", destination)) |>
+        dplyr::select(relation_id, file, relation_label)
+    })
+    
+    output$editmoderations <- rhandsontable::renderRHandsontable({
+      shiny::req(!base::is.null(sourcedoc()))
+      shiny::req(!base::is.null(short_relations()))
+      moderations <- modrval$moderations |>
+        dplyr::filter(file == sourcedoc()) |>
+        dplyr::left_join(short_relations(), by = c("relation_id", "file")) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, concept_id, moderator = concept_label), by = "concept_id") |>
+        dplyr::select(moderation_id, file, moderator, sign, relation_label, explanation, segment, position)
+      if (input$regexmoderations != ""){
+        selected1 <- moderations |>
+          dplyr::filter(stringr::str_detect(base::tolower(moderator), base::tolower(input$regexmoderations)))
+        selected2 <- moderations |>
+          dplyr::filter(stringr::str_detect(base::tolower(relation_label), base::tolower(input$regexmoderations)))
+        selected <- base::unique(dplyr::bind_rows(selected1, selected2))
+      } else selected <- moderations
+      newid <- searchR::make_new_id(modrval$moderations$moderation_id, "MOD")
+      add <- tibble::tibble(
+        moderation_id = newid,
+        file = sourcedoc(),
+        moderator = base::as.character(NA),
+        sign = base::as.character(NA),
+        relation_label = base::as.character(NA),
+        explanation = base::as.character(NA), 
+        segment = base::as.integer(NA),
+        position = base::as.character(NA)
+      )
+      dplyr::bind_rows(selected, add) |>
+        dplyr::arrange(moderator, relation_label) |>
+        dplyr::mutate(
+          moderator = base::factor(moderator, levels = c("", modrval$concepts$concept_label)),
+          sign = base::factor(sign, levels = c("+","-","?","+/-")),
+          relation_label = base::factor(relation_label, levels = c("", short_relations()$relation_label)),
+          keep = TRUE
+        ) |>
+        rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
+        rhandsontable::hot_col(c(1,2), readOnly = TRUE) |>
+        rhandsontable::hot_cols(
+          colWidths = c("5%","5%","20%","5%","20%","30%","5%","5%","5%"),
+          manualColumnResize = TRUE
+        ) |>
+        rhandsontable::hot_context_menu(
+          allowRowEdit = TRUE, allowColEdit = FALSE
+        )
+    })
+    
+    shiny::observeEvent(input$savemoderations, {
+      shiny::req(!base::is.null(input$editmoderations))
+      shiny::req(!base::is.null(short_relations()))
+      table <- input$editmoderations |>
+        rhandsontable::hot_to_r() |>
+        dplyr::filter(!base::is.na(moderator), !base::is.na(relation_label)) |>
+        dplyr::filter(moderator != "", relation_label != "")
+      excluded <-  dplyr::filter(modrval$moderations, !(moderation_id %in% table$moderation_id))
+      edited <- dplyr::filter(table, moderation_id %in% modrval$moderations$moderation_id)
+      added <- dplyr::filter(table, !(moderation_id %in% modrval$moderations$moderation_id))
+      moderations <- dplyr::bind_rows(base::list(edited, added)) |>
+        dplyr::filter(keep == TRUE) |> dplyr::select(-keep) |>
+        dplyr::mutate(
+          moderator = base::as.character(moderator),
+          relation_label = base::as.character(relation_label),
+          sign = base::as.character(sign)
+        ) |>
+        dplyr::arrange(moderator, relation_label) |>
+        dplyr::left_join(dplyr::select(modrval$concepts, moderator = concept_label, concept_id), by = "moderator") |>
+        dplyr::left_join(short_relations(), by = c("relation_label","file")) |>
+        dplyr::select(moderation_id, file, concept_id, sign, relation_id, explanation, segment, position) |>
+        dplyr::bind_rows(excluded)
+      modrval$moderations <- moderations
+      base::save(moderations, file = study_paths()$databases$moderations)
+      shinyalert::shinyalert(title = "moderations saved", type = "success")
+    })
+    
+    
+    
+    
+    
     
     
     

@@ -54,7 +54,7 @@ annotate_source_ui <- function(id){
         )
       ),
       shiny::column(
-        5,
+        6,
         shinyWidgets::searchInput(
           inputId = ns("regexintitle"),
           label = "Search in title:", 
@@ -73,13 +73,13 @@ annotate_source_ui <- function(id){
         )
       ),
       shiny::column(
-        5,
+        4,
         editR::selection_ui(ns("slctsource"))
       )
     ),
     shiny::fluidRow(
       shiny::column(
-        7,
+        8,
         shinydashboard::tabBox(
           side = "left", width = "100%",
           
@@ -191,7 +191,7 @@ annotate_source_ui <- function(id){
           
           shiny::tabPanel(
             title = shiny::span(
-              shiny::icon("diagram-project"), "Moderations",
+              shiny::icon("arrows-down-to-line"), "Moderations",
               title = ""
             ),
             shiny::fluidRow(
@@ -213,7 +213,8 @@ annotate_source_ui <- function(id){
                   width = "100%"
                 )
               )
-            )
+            ),
+            rhandsontable::rHandsontableOutput(ns("editmoderations"))
           ),
           
           
@@ -249,7 +250,7 @@ annotate_source_ui <- function(id){
           
           shiny::tabPanel(
             title = shiny::span(
-              shiny::icon("ruler"), "Operationalizations",
+              shiny::icon("arrow-up-right-from-square"), "Operationalizations",
               title = ""
             ),
             shiny::fluidRow(
@@ -305,7 +306,7 @@ annotate_source_ui <- function(id){
         )
       ),
       shiny::column(
-        5,
+        4,
         shiny::uiOutput(ns("displaysource"))
       )
     )
