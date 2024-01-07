@@ -906,12 +906,19 @@ annotate_source_server <- function(id, documents, references, study_paths){
         dplyr::filter(file == sourcedoc())
       observations <- modrval$observations |>
         dplyr::filter(file == sourcedoc())
+      counts <- dplyr::bind_rows(base::list(
+        dplyr::select(relations, name = concept_id1, file),
+        dplyr::select(relations, name = concept_id2, file),
+        dplyr::select(operationalizations, name = indicator_id, file)
+      )) |>
+        base::unique()|>
+        dplyr::group_by(name) |>
+        dplyr::summarise(size = dplyr::n())
       nodes <- dplyr::bind_rows(
         dplyr::mutate(dplyr::select(concepts, name = concept_id, symbol = concept_symbol, label = concept_label), shape = "circle", color = "#99DDFF77"),
         dplyr::mutate(dplyr::select(indicators, name = indicator_id, symbol = indicator_symbol, label = indicator_label), shape = "square", color = "#FF99DD77"),
       ) |>
-        dplyr::group_by(name, symbol, label, shape, color) |>
-        dplyr::summarise(size  = dplyr::n(), .groups = "drop")
+        dplyr::left_join(counts, by = "name")
       rel <- relations |>
         dplyr::mutate(
           origin = dplyr::case_when(
@@ -972,7 +979,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
       tidygraph::as_tbl_graph(edges) |>
         tidygraph::activate("nodes") |>
         tidygraph::left_join(nodes, by = "name") |>
-        tidygraph::mutate(size = base::as.numeric(size/base::max(size))*30) |>
+        tidygraph::mutate(size = base::as.numeric(size/base::max(size))*40) |>
         tidygraph::activate("edges")
     })
     
