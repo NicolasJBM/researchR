@@ -1,9 +1,9 @@
 #' @name annotate_source_ui
-#' @title Load course data
+#' @title Annotate sources
 #' @author Nicolas Mangin
-#' @description Module facilitating the loading of all relevant course data.
+#' @description Module facilitating literature reviews, document and questionnaire coding.
 #' @param id Character. ID of the module to connect the user interface to the appropriate server side.
-#' @return A list of course data.
+#' @return Change internal sources and databases
 #' @importFrom editR selection_ui
 #' @importFrom rhandsontable rHandsontableOutput
 #' @importFrom shiny NS

@@ -168,12 +168,12 @@ load_study_server <- function(id, study_paths){
               dplyr::mutate(
                 nature = dplyr::case_when(
                   type == "Interview" & stringr::str_detect(text, "^Q[0-9]{0,3} : ") ~ "Question",
-                  type == "Interview" & stringr::str_detect(text, "^A[0-9]{0,3} : ") ~ "Answer",
+                  type == "Interview" & stringr::str_detect(text, "^R[0-9]{0,3} : ") ~ "Response",
                   type == "Document" & stringr::str_detect(text, "^S[0-9]{0,3} : ") ~ "Section",
                   TRUE ~ "Content"
                 )
               ) |>
-              dplyr::mutate(text = stringr::str_remove_all(text, "^[Q,A,S][0-9]{0,3} : ")) |>
+              dplyr::mutate(text = stringr::str_remove_all(text, "^[Q,R,S][0-9]{0,3} : ")) |>
               dplyr::select(file, segment, nature, text)
             
             segments <- segments |>

@@ -1,12 +1,12 @@
 #' @name annotate_source_server
-#' @title Load course data
+#' @title Annotate sources
 #' @author Nicolas Mangin
-#' @description Module facilitating the loading of all relevant course data.
+#' @description Module facilitating literature reviews, document and questionnaire coding.
 #' @param id Character. ID of the module to connect the user interface to the appropriate server side.
 #' @param documents Reactive. Function containing a list of paths to the different folders and databases on local disk.
 #' @param references Reactive. List of references.
 #' @param study_paths Reactive. Paths to project databases and sub-folders.
-#' @return A list of course data.
+#' @return Change internal sources and databases
 #' @importFrom dplyr arrange
 #' @importFrom dplyr bind_rows
 #' @importFrom dplyr case_when
@@ -308,7 +308,7 @@ annotate_source_server <- function(id, documents, references, study_paths){
           nature %in% input$slctnature,
           segment >= input$slctsegment[1], segment <= input$slctsegment[2]
         ) |>
-        dplyr::mutate(nature = base::factor(nature, levels = c("Section","Content","Question","Answer"))) |>
+        dplyr::mutate(nature = base::factor(nature, levels = c("Section","Content","Question","Response"))) |>
         rhandsontable::rhandsontable(width = "100%", rowHeaders = NULL, stretchH = "all") |>
         rhandsontable::hot_cols(
           colWidths = c("10%","10%","80%"),
@@ -334,9 +334,9 @@ annotate_source_server <- function(id, documents, references, study_paths){
         } else {
           relevantchoices <- c(
             `<i class='fa fa-question-circle'> Q </i>` = "Question",
-            `<i class='fa fa-comment-dots'> A </i>` = "Answer"
+            `<i class='fa fa-comment-dots'> R </i>` = "Response"
           )
-          slct <- c("Question","Answer")
+          slct <- c("Question","Response")
         }
         base::list(
           shiny::fluidRow(
